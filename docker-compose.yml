@@ -1,0 +1,25 @@
+version: '3.9'
+
+services:
+  postgres:
+    container_name: stalkme_postgres
+    image: postgres:14-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - ~/apps/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=12345!
+      - POSTGRES_USER=administrator
+      - POSTGRES_DB=stalkme_db
+  redis:
+    image: redis:alpine3.19
+    command: redis-server
+    volumes:
+      - redis:/var/lib/redis
+      - redis-config:/usr/local/etc/redis/redis.conf
+    ports:
+      - 6379:6379
+volumes:
+  redis:
+  redis-config:
