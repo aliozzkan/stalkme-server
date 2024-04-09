@@ -20,7 +20,10 @@ import {
   AuthRegisterBodyDTO,
   AuthResetPasswordBodyDTO,
   AuthResetPasswordEmailBodyDTO,
+  AuthTfaTokenDto,
 } from './authController.dtos';
+import { IJwtPayload } from 'src/domain/adapters/jwt.interface';
+import { JwtTFAGuard } from 'src/infrastructure/guards/jwtTfa.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -78,12 +81,41 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('revoke-sessions')
   async revokeSessions(@CurrentAuth() auth: AuthUser) {
-    await this.authUsecases.revokeSessions(auth);
+    await this.authUsecases.revokeSessions(auth.user);
     return;
   }
 
   @Get('ip')
   async getIp(@Ip() ip: string) {
     return ip;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('tfa/enable')
+  async enableTfa(@CurrentAuth() auth: AuthUser) {
+    await this.authUsecases.enableTfa(auth.user);
+    return;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('tfa/disable')
+  async disableTfa(@CurrentAuth() auth: AuthUser) {
+    await this.authUsecases.disableTfa(auth.user);
+    return;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('tfa/qr-code')
+  async getTfaQrCode(@CurrentAuth() auth: AuthUser) {
+    return await this.authUsecases.getTfaQrCode(auth.user);
+  }
+
+  @UseGuards(JwtTFAGuard)
+  @Post('tfa/verify')
+  async verifyTfa(
+    @CurrentAuth() auth: IJwtPayload,
+    @Body() body: AuthTfaTokenDto,
+  ) {
+    return await this.authUsecases.verifyTfaToken(auth, body.token);
   }
 }

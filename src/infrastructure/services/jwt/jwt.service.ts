@@ -18,6 +18,13 @@ export class JwtTokenService {
     });
   }
 
+  createTfaToken(payload: IJwtPayload) {
+    return this.jwtService.sign(payload, {
+      secret: 'stalkme-jwt-tfa-secret',
+      expiresIn: '10m',
+    });
+  }
+
   async decodeToken(token: string): Promise<IJwtPayload> {
     const decoded = (await this.jwtService.decode(token)) as IJwtPayload;
     return decoded;

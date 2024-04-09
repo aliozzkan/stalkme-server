@@ -1,5 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { AbstractModel } from '../interfaces/abstractModel';
+import { UserTfaM } from './user_tfa.model';
 
 @Entity({
   name: 'user',
@@ -28,6 +29,9 @@ export class UserM extends AbstractModel {
 
   @Column({ type: 'timestamptz', nullable: true })
   premiumAt: Date;
+
+  @OneToOne(() => UserTfaM, (userTfa) => userTfa.user)
+  tfa: UserTfaM;
 
   isPremium() {
     return Boolean(this.premiumAt);

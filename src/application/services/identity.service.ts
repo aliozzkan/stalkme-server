@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { toDataURL } from 'qrcode';
+
 import { AuthRegisterDTO } from 'src/domain/dtos/auth.dtos';
 import { CacheService } from 'src/infrastructure/cache/cache.service';
 import { UserRepository } from 'src/infrastructure/repositories/user.repository';
@@ -14,6 +16,8 @@ import {
 import { JwtTokenService } from 'src/infrastructure/services/jwt/jwt.service';
 import { Equal, IsNull, Not } from 'typeorm';
 import { SessionRepository } from 'src/infrastructure/repositories/session.repository';
+import { TfaService } from 'src/infrastructure/services/tfa/tfa.service';
+import { UserM } from 'src/domain/models/user.model';
 
 @Injectable()
 export class IdendityService {
@@ -25,6 +29,7 @@ export class IdendityService {
     private readonly bcryptService: BcryptService,
     private readonly jwtService: JwtTokenService,
     private readonly sessionRepository: SessionRepository,
+    private readonly tfaService: TfaService,
   ) {}
   async userRegister(variables: AuthRegisterDTO) {
     return await this.userRepository.create(variables);
@@ -73,6 +78,18 @@ export class IdendityService {
     if (!isValid) {
       throw new Error('Invalid password');
     }
+
+    if (user.tfa && user.tfa.enabled) {
+      return this.jwtService.createTfaToken({
+        id: user.id,
+        username: user.username,
+      });
+    }
+
+    return this.createSession(user);
+  }
+
+  private async createSession(user: UserM) {
     const token = this.jwtService.createToken({
       id: user.id,
       username: user.username,
@@ -86,6 +103,7 @@ export class IdendityService {
 
     return token;
   }
+
   async revokeSession(token: string) {
     await this.sessionRepository.revoke(token);
   }
@@ -120,5 +138,57 @@ export class IdendityService {
 
   async revokeAllSessions(userId: number) {
     await this.sessionRepository.deleteAllByUserId(userId);
+  }
+
+  async enableTfa(userId: number) {
+    const user = await this.userRepository.getOneById(userId, {
+      withRelations: true,
+    });
+    if (user.tfa) {
+      if (user.tfa.enabled) {
+        throw new Error('TFA already enabled');
+      }
+      await this.userRepository.updateTfaByUserId(userId, { enabled: true });
+      return;
+    }
+    const tfaResult = await this.tfaService.generateToken(user.email);
+    await this.userRepository.createTfa(userId, {
+      secret: tfaResult.secret,
+      otpAuthUri: tfaResult.otpAuthUri,
+    });
+    return;
+  }
+
+  async disableTfa(userId: number) {
+    await this.userRepository.updateTfaByUserId(userId, { enabled: false });
+  }
+
+  async getTfaQrCode(userId: number) {
+    const user = await this.userRepository.getOneById(userId, {
+      withRelations: true,
+    });
+    if (!user.tfa) {
+      throw new Error('TFA not enabled');
+    }
+    return toDataURL(user.tfa.otpAuthUri);
+  }
+
+  async loginWithTfa(userId: number, token: string) {
+    const user = await this.userRepository.getOneById(userId, {
+      withRelations: true,
+    });
+    if (!user.tfa || !user.tfa.enabled) {
+      throw new Error('TFA not enabled');
+    }
+    const isValid = await this.tfaService.verifyToken({
+      secret: user.tfa.secret,
+      token,
+    });
+
+    if (!isValid) {
+      throw new Error('Invalid token');
+    }
+
+    return this.createSession(user);
   }
 }

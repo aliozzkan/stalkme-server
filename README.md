@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 
 - Init project
 - Add identity apis
+- Add tfa (RFC 3548 - base32)
 
 ### Changed
 

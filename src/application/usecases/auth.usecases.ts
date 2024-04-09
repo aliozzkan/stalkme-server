@@ -8,6 +8,8 @@ import { ErrorCodeEnum } from 'src/domain/enums/errorCode.enum';
 import { ExceptionsService } from 'src/infrastructure/exceptions/exceptions.service';
 import { IdendityService } from '../services/identity.service';
 import { AuthUser } from 'src/infrastructure/decorators/auth.decorator';
+import { UserM } from 'src/domain/models/user.model';
+import { IJwtPayload } from 'src/domain/adapters/jwt.interface';
 
 @Injectable()
 export class AuthUseCases {
@@ -60,7 +62,29 @@ export class AuthUseCases {
       });
     }
   }
-  async revokeSessions(auth: AuthUser) {
-    await this.identityService.revokeAllSessions(auth.user.id);
+  async revokeSessions(user: UserM) {
+    await this.identityService.revokeAllSessions(user.id);
+  }
+
+  async enableTfa(user: UserM) {
+    await this.identityService.enableTfa(user.id);
+  }
+
+  async disableTfa(user: UserM) {
+    await this.identityService.disableTfa(user.id);
+  }
+
+  async getTfaQrCode(user: UserM) {
+    return await this.identityService.getTfaQrCode(user.id);
+  }
+
+  async verifyTfaToken(user: IJwtPayload, token: string) {
+    try {
+      return await this.identityService.loginWithTfa(user.id, token);
+    } catch (error) {
+      this.exceptionService.badRequestException({
+        codeError: ErrorCodeEnum.INVALID_TOKEN,
+      });
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
 import { AuthResetPasswordDTO } from 'src/domain/dtos/auth.dtos';
 
 export class AuthRegisterBodyDTO {
@@ -26,3 +26,10 @@ export class AuthResetPasswordEmailBodyDTO {
 }
 
 export class AuthResetPasswordBodyDTO extends AuthResetPasswordDTO {}
+
+export class AuthTfaTokenDto {
+  @IsString()
+  @MinLength(6)
+  @MaxLength(6)
+  token: string;
+}

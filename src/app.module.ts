@@ -7,6 +7,7 @@ import { ExceptionsModule } from './infrastructure/exceptions/exceptions.module'
 import { LoggerModule } from './infrastructure/logger/logger.module';
 import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
 import { RepositoryModule } from './infrastructure/repositories/repository.module';
+import { JwtTfaStrategy } from './infrastructure/strategies/jwt_tfa.strategy';
 
 @Module({
   imports: [
@@ -20,6 +21,6 @@ import { RepositoryModule } from './infrastructure/repositories/repository.modul
       exclude: ['/api/(.*)'],
     }),
   ],
-  providers: [JwtStrategy],
+  providers: [JwtStrategy, JwtTfaStrategy],
 })
 export class AppModule {}
